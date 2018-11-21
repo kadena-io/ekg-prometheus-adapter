@@ -18,7 +18,6 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Trans.State.Strict
 import qualified Data.HashMap.Strict as HMap
 import qualified Data.Map.Strict as Map
-import           Data.Monoid
 import Lens.Micro.TH
 import qualified Data.Text as T
 import qualified System.Metrics as EKG
@@ -53,9 +52,10 @@ defaultOptions l = AdapterOptions l Nothing 15
 registerEKGStore :: MonadIO m => EKG.Store -> AdapterOptions -> RegistryT m ()
 registerEKGStore store opts = RegistryT $ StateT $ \_ -> do
   (r, mmap) <- liftIO $ toPrometheusRegistry' store opts
-  liftIO $ forkIO $ do
+  _ <- liftIO $ forkIO $ do
     let loop = forever $ do
-                 threadDelay (_samplingFrequency opts * 10^6)
+                 let delay = (10 :: Int) ^ (6 :: Integer)
+                 threadDelay (_samplingFrequency opts * delay)
                  updateMetrics store opts mmap
                  loop
     loop
